@@ -23,5 +23,5 @@ OpenShift Container Platform 4.5.
 Copyright (C) 2020 by Anthony Green
 
 stack2shift is Free Software distributed under the terms of the GNU
-Affero General Public License, version 3 or later. The source files
+Affero General Public License, version 3 or later. See the source files
 for details.
