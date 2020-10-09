@@ -7,7 +7,7 @@ stack2shift will talk to OpenShift, and present a selection of VMs to migrate:
 
 ![alt text](select-vm.png "OpenStack VM selector")
 
-One selected, it will perform the actual migration and run the VMs in OpenShift:
+Once selected, it will perform the actual migration and run the VMs in OpenShift:
 
 ![alt text](migrate-vm.png "OpenStack to OpenShift migration")
 
