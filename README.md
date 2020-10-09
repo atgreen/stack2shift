@@ -1,7 +1,7 @@
 ## stack2shift - a proof-of-concept OpenStack to OpenShift migration tool
 
 This is a simple migration tool for bringing OpenStack-hosted VMs over
-to OpenShift Virtualiztion.
+to OpenShift Virtualization.
 
 stack2shift will talk to OpenStack and present a selection of VMs to migrate:
 
