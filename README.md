@@ -15,8 +15,23 @@ This is not intended for real world use. It is just a proof of concept
 to demonstrate some of the activities required for successful
 migration of simple VM workloads.
 
+### Requirements
+
 stack2shift was tested with Red Hat OpenStack Platform 16.1, and
 OpenShift Container Platform 4.5.
+
+stack2shift depends on the following external command line tools:
+
+* `openstack`
+* `oc`
+* `virtctl`
+* `dialog`
+
+In addition, you should be logged into the `openshift-cnv` project of
+your OpenShift cluster.
+
+stack2shift was written in Common Lisp and depends on `sbcl` and
+QuickLisp.
 
 ### Licensing
 
