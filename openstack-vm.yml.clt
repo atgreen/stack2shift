@@ -1,0 +1,63 @@
+﻿apiVersion: kubevirt.io/v1alpha3
+kind: VirtualMachine
+metadata:
+  name: <%= @ vm-name %>
+  annotations:
+    kubevirt.io/latest-observed-api-version: v1alpha3
+    kubevirt.io/storage-observed-api-version: v1alpha3
+    name.os.template.kubevirt.io/rhel6.10: Red Hat Enterprise Linux 6.0 or higher
+  namespace: openshift-cnv
+  labels:
+    app: <%= @ vm-name %>
+    flavor.template.kubevirt.io/tiny: 'true'
+    os.template.kubevirt.io/rhel6.10: 'true'
+    vm.kubevirt.io/template: rhel6-server-tiny-v0.11.3
+    vm.kubevirt.io/template.namespace: openshift
+    vm.kubevirt.io/template.revision: '1'
+    vm.kubevirt.io/template.version: v0.11.3
+    workload.template.kubevirt.io/server: 'true'
+spec:
+  running: true
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        flavor.template.kubevirt.io/tiny: 'true'
+        kubevirt.io/domain: <%= @ vm-name %>
+        kubevirt.io/size: tiny
+        os.template.kubevirt.io/rhel6.10: 'true'
+        vm.kubevirt.io/name: <%= @ vm-name %>
+        workload.template.kubevirt.io/server: 'true'
+    spec:
+      domain:
+        cpu:
+          cores: 1
+          sockets: 1
+          threads: 1
+        devices:
+          disks:
+            - bootOrder: 1
+              disk:
+                bus: virtio
+              name: disk-0
+          interfaces:
+            - masquerade: {}
+              model: virtio
+              name: nic-0
+          networkInterfaceMultiqueue: true
+          rng: {}
+        machine:
+          type: pc-q35-rhel8.2.0
+        resources:
+          requests:
+            memory: 1Gi
+      evictionStrategy: LiveMigrate
+      hostname: <%= @ vm-name %>
+      networks:
+        - name: nic-0
+          pod: {}
+      terminationGracePeriodSeconds: 180
+      volumes:
+        - name: disk-0
+          persistentVolumeClaim:
+            claimName: <%= @ vm-name %>-pvc
