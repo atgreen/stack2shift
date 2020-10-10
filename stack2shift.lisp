@@ -111,6 +111,28 @@
            (sleep 5)))
     image-id))
 
+
+;; Macros to clean up resources in the event of normal or non-local
+;; exits...
+
+(defmacro with-snapshot ((snapshot-id vm-name id) &body body)
+  `(let ((,snapshot-id (create-snapshot-from-volume ,vm-name ,id)))
+     (unwind-protect (progn ,@body)
+       (glog "Cleaning up snapshot ~A" ,snapshot-id)
+       (uiop:run-program (format nil "openstack volume snapshot delete ~A" ,snapshot-id)))))
+
+(defmacro with-volume ((volume-id vm-name id) &body body)
+  `(let ((,volume-id (create-volume-from-snapshot ,vm-name ,id)))
+     (unwind-protect (progn ,@body)
+       (glog "Cleaning up volume ~A" ,volume-id)
+       (uiop:run-program (format nil "openstack volume delete ~A" ,volume-id)))))
+
+(defmacro with-image ((image-id vm-name id) &body body)
+  `(let ((,image-id (create-image-from-volume ,vm-name ,id)))
+     (unwind-protect (progn ,@body)
+       (glog "Cleaning up image ~A" ,image-id)
+       (uiop:run-program (format nil "openstack image delete ~A" ,image-id)))))
+
 (defun migrate-vm (vm-id)
   (glog "****************************************************************")
   (glog "Migrating vm-id ~A" vm-id)
@@ -127,28 +149,30 @@
     (multiple-value-bind (match ids)
         (ppcre:scan-to-strings ".*'(.*)'" vm-volumes)
       ;; Assume one volume per...
-      (let* ((id (aref ids 0))
-             (snapshot-id (create-snapshot-from-volume vm-name id))
-             (volume-id (create-volume-from-snapshot vm-name snapshot-id))
-             (image-id (create-image-from-volume vm-name volume-id)))
-        (glog "Downloading image from OpenStack...")
-        (uiop:run-program (format nil "openstack image save --file ~A.qcow2 ~A" vm-name image-id))
-        (glog "Uploading image to OpenShift...")
-        ;; Assume 10Gi is good enough
-        (uiop:run-program (format nil "virtctl image-upload pvc ~A-pvc --size=10Gi --image-path=./~A.qcow2" vm-name vm-name))
-        (glog "Creating OpenShift VM definition: ~A.yml" vm-name)
-        (with-open-file (stream (format nil "~A.yml" vm-name)
-                                :direction :output
-                                :if-exists :supersede
-                                :if-does-not-exist :create)
-          (format stream (funcall (cl-template:compile-template *openstack-vm-template*)
-                                  (list :vm-name vm-name))))
-        (glog "Creating OpenShift VM: ~A ..." vm-name)
-        (uiop:run-program (format nil "oc create -f ~A.yml" vm-name))
-        (glog "Done.")))))
+      (let* ((id (aref ids 0)))
+        (with-snapshot (snapshot-id vm-name id)
+          (with-volume (volume-id vm-name snapshot-id)
+            (with-image (image-id vm-name volume-id)
+              (glog "Downloading image from OpenStack...")
+              (uiop:run-program (format nil "openstack image save --file ~A.qcow2 ~A" vm-name image-id))
+              (glog "Uploading image to OpenShift...")
+              ;; Assume 10Gi is good enough
+              (uiop:run-program (format nil "virtctl image-upload pvc ~A-pvc --size=10Gi --image-path=./~A.qcow2" vm-name vm-name))
+              (delete-file (format nil "~A.qcow2" vm-name))
+              (glog "Creating OpenShift VM definition: ~A.yml" vm-name)
+              (with-open-file (stream (format nil "~A.yml" vm-name)
+                                      :direction :output
+                                      :if-exists :supersede
+                                      :if-does-not-exist :create)
+                (format stream (funcall (cl-template:compile-template *openstack-vm-template*)
+                                        (list :vm-name vm-name))))
+              (glog "Creating OpenShift VM: ~A ..." vm-name)
+              (uiop:run-program (format nil "oc create -f ~A.yml" vm-name)))))))
+    (glog "Done.")))
 
 (defun main (args)
   (declare (ignore args))
+  (glog "Connecting to OpenStack...")
   (let* ((servers (get-server-list)))
     (let ((rstream (make-string-input-stream
                     (uiop:run-program (with-output-to-string (cmd)
