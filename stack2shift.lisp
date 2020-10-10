@@ -49,10 +49,10 @@
           (cdr (assoc :+ID+ arg))
           (cdr (assoc :*NAME arg))))
 
-(defun create-snapshot-from-volume (volume-id)
+(defun create-snapshot-from-volume (vm-name volume-id)
   (glog "Creating snapshot from volume ~A" volume-id)
   (let* ((snapshot-info (json:decode-json-from-string
-                         (uiop:run-program (format nil "openstack volume snapshot create -f json --force --volume ~A lisp-migrationM" volume-id)
+                         (uiop:run-program (format nil "openstack volume snapshot create -f json --force --volume ~A ~A" volume-id vm-name)
                                            :output '(:string :stripped t))))
          (snapshot-id (cdr (assoc :ID snapshot-info))))
     (loop
@@ -66,10 +66,10 @@
            (sleep 5)))
     snapshot-id))
 
-(defun create-volume-from-snapshot (snapshot-id)
+(defun create-volume-from-snapshot (vm-name snapshot-id)
   (glog "Creating volume from snapshot ~A" snapshot-id)
   (let* ((volume-info (json:decode-json-from-string
-                       (uiop:run-program (format nil "openstack volume create -f json --snapshot ~A lisp-migrationM" snapshot-id)
+                       (uiop:run-program (format nil "openstack volume create -f json --snapshot ~A ~A" snapshot-id vm-name)
                                          :output '(:string :stripped t))))
          (volume-id (cdr (assoc :ID volume-info))))
     (loop
@@ -95,9 +95,9 @@
                  (setf value (aref values 0)))))
     value))
 
-(defun create-image-from-volume (volume-id)
+(defun create-image-from-volume (vm-name volume-id)
   (glog "Creating image from volume ~A" volume-id)
-  (let* ((image-info (uiop:run-program (format nil "cinder upload-to-image --disk-format qcow2 ~A lisp-migrationM" volume-id)
+  (let* ((image-info (uiop:run-program (format nil "cinder upload-to-image --disk-format qcow2 ~A ~A" volume-id vm-name)
                                         :output '(:string :stripped t)))
          (image-id (get-table-value "image_id" image-info)))
     (loop
@@ -128,9 +128,9 @@
         (ppcre:scan-to-strings ".*'(.*)'" vm-volumes)
       ;; Assume one volume per...
       (let* ((id (aref ids 0))
-             (snapshot-id (create-snapshot-from-volume id))
-             (volume-id (create-volume-from-snapshot snapshot-id))
-             (image-id (create-image-from-volume volume-id)))
+             (snapshot-id (create-snapshot-from-volume vm-name id))
+             (volume-id (create-volume-from-snapshot vm-name snapshot-id))
+             (image-id (create-image-from-volume vm-name volume-id)))
         (glog "Downloading image from OpenStack...")
         (uiop:run-program (format nil "openstack image save --file ~A.qcow2 ~A" vm-name image-id))
         (glog "Uploading image to OpenShift...")
