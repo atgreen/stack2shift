@@ -22,10 +22,11 @@ OpenShift Container Platform 4.5.
 
 stack2shift depends on the following external command line tools:
 
-* `openstack`
-* `oc`
-* `virtctl`
+* `cinder`
 * `dialog`
+* `oc`
+* `openstack`
+* `virtctl`
 
 In addition, you should be logged into the `openshift-cnv` project of
 your OpenShift cluster.
