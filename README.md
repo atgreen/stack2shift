@@ -33,9 +33,23 @@ your OpenShift cluster.
 stack2shift was written in Common Lisp and depends on `sbcl` and
 QuickLisp.
 
+### Why this isn't production grade
+
+While OpenShift Virtualization is ready for production use, this
+simple proof-of-concept migration tool is not and probably never will
+be.  stack2shift makes the following assumptions about VMs being
+migrated:
+
+* Every VM has a single volume and NIC.
+* Every VM's volume is less than 10G in size.
+* Every VM fits into a 'tiny' t-shirt size (1 core, 512MB RAM).
+
+Addressing each one of these assumptions seems straight-forward, but
+is beyond the scope of this simple demo tool (for now).
+
 ### Licensing
 
-Copyright (C) 2020 by Anthony Green
+Copyright (C) 2020  Anthony Green
 
 stack2shift is Free Software distributed under the terms of the GNU
 Affero General Public License, version 3 or later. See the source files
